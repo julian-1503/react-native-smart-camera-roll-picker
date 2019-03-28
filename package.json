@@ -25,7 +25,7 @@
   },
   "homepage": "https://github.com/react-native-component/react-native-smart-camera-roll-picker#readme",
   "dependencies": {
-    "react-native-smart-pull-to-refresh-listview": "^1.6.8"
+    "react-native-smart-pull-to-refresh-listview": "github:julian-1503/react-native-smart-pull-to-refresh-listview"
   }
 }
 
