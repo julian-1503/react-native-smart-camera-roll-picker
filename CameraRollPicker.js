@@ -38,32 +38,6 @@ export default class CameraRollPicker extends Component {
         },
     }
 
-    static propTypes = {
-        rowWidth: React.PropTypes.number,
-        initialListSize: React.PropTypes.number,
-        pageSize: React.PropTypes.number,
-        groupTypes: React.PropTypes.oneOf([
-            'Album',
-            'All',
-            'Event',
-            'Faces',
-            'Library',
-            'PhotoStream',
-            'SavedPhotos',
-        ]),
-        maximum: React.PropTypes.number,
-        assetType: React.PropTypes.oneOf([
-            'Photos',
-            'Videos',
-            'All',
-        ]),
-        columnCount: React.PropTypes.number,
-        rowWidth: React.PropTypes.number,
-        onSelect: React.PropTypes.func,
-        selected: React.PropTypes.array,
-        selectedMarker: React.PropTypes.element,
-    }
-
     constructor(props) {
         super(props)
 

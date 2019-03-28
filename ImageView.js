@@ -1,7 +1,7 @@
-
 import React, {Component} from 'react'
 import {
     Image,
+    ImageBackground,
     StyleSheet,
     Dimensions,
     TouchableOpacity,
@@ -12,14 +12,6 @@ export default class ImageItem extends Component {
     static defaultProps = {
         item: {},
         selected: false,
-    }
-
-    static propTypes = {
-        item: React.PropTypes.object.isRequired,
-        selected: React.PropTypes.bool.isRequired,
-        selectedMarker: React.PropTypes.element,
-        columnWidth: React.PropTypes.number.isRequired,
-        onClick: React.PropTypes.func,
     }
 
     render() {
@@ -35,11 +27,11 @@ export default class ImageItem extends Component {
         return (
             <TouchableOpacity
                 onPress={this._handleClick.bind(this, image)}>
-                <Image
+                <ImageBackground
                     source={{uri: image.uri}}
                     style={{margin: 1, height: columnWidth - 2, width: columnWidth - 2,}} >
                     { (selected) ? marker : null }
-                </Image>
+                </ImageBackground>
             </TouchableOpacity>
         )
     }
