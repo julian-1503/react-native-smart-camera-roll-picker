@@ -4,7 +4,7 @@ import {
     ImageBackground,
     StyleSheet,
     Dimensions,
-    TouchableOpacity,
+    TouchableWithoutFeedback,
 } from 'react-native'
 
 export default class ImageItem extends Component {
@@ -22,22 +22,22 @@ export default class ImageItem extends Component {
                 source={require('./selected.png')}
             />
 
-        let image = item.node.image
+        let image = {...item}
 
         return (
-            <TouchableOpacity
-                onPress={this._handleClick.bind(this, image)}>
+            <TouchableWithoutFeedback
+                onPress={this._handlePress.bind(this, image)}>
                 <ImageBackground
                     source={{uri: image.uri}}
                     style={{margin: 1, height: columnWidth - 2, width: columnWidth - 2,}} >
                     { (selected) ? marker : null }
                 </ImageBackground>
-            </TouchableOpacity>
+            </TouchableWithoutFeedback>
         )
     }
 
-    _handleClick(item) {
-        this.props.onClick(item)
+    _handlePress(item) {
+        this.props.onPress(item)
     }
 }
 
@@ -48,6 +48,4 @@ const styles = StyleSheet.create({
         right: 5,
         backgroundColor: 'transparent',
     },
-})
-
-
+}
