@@ -1,274 +1,230 @@
 /*
  * A smart react native component providing images selection from camera roll for android and ios, written in JS
- * https://github.com/react-native-component/react-native-smart-camera-roll-picker/
+ * https://github.com/julian-1503/react-native-smart-camera-roll-picker/
  * Released under the MIT license
- * Copyright (c) 2017 react-native-component <moonsunfall@aliyun.com>
+ * Copyright (c) 2018 react-native-component <juliandeveloper1503@gmail.com>
  */
 
 import React, {Component} from 'react'
 import {
-    CameraRoll,
-    Platform,
     StyleSheet,
     View,
     Text,
     ListView,
     ActivityIndicator,
     Dimensions,
+    FlatList
 } from 'react-native'
 import ImageView from './ImageView'
 import PullToRefreshListView from 'react-native-smart-pull-to-refresh-listview'
+
+import GalleryManager from 'react-native-gallery-manager'
 
 const {width: deviceWidth} = Dimensions.get('window')
 
 export default class CameraRollPicker extends Component {
 
-    static defaultProps = {
-        onEndReachedThreshold: 0,
-        fetchSize: 90,
-        initialListSize: 30,
-        pageSize: 30,
-        groupTypes: 'SavedPhotos',
-        maximum: 8,
-        columnCount: 3,
-        assetType: 'Photos',
-        selected: [],
-        onSelect: (selectedImages, currentImage) => {
+  static defaultProps = {
+    onEndReachedThreshold: 0.8,
+    fetchSize: 90,
+    maximum: 8,
+    columnCount: 3,
+    assetType: 'all',
+    selected: [],
+    onSelect: (selectedImages, currentImage) => {},
+    getFirstPhoto: () => {},
+    onMaximumReached: () => {}
+  }
 
-        },
+  constructor(props) {
+    super(props)
+
+    let {rowWidth, columnCount, selected} = props
+
+    this.state = {
+      images: [],
+      noMore: false,
+      next: 0,
+      refreshing: false,
+      initial: true,
+      selected: new Set()
     }
 
-    constructor(props) {
-        super(props)
+    this._renderImage = this._renderImage.bind(this)
+    this._fetch = this._fetch.bind(this)
+    this._renderFooter = this._renderFooter.bind(this)
+    this._columnWidth = (rowWidth || deviceWidth) / columnCount
+  }
 
-        let {rowWidth, columnCount, selected} = props
+  shouldComponentUpdate (nextProps, nextState) {
+    let shouldUpdate = (
+      this.state.refreshing !== nextState.refreshing ||
+      this.state.next !== nextState.next ||
+      this.state.noMore !== nextState.noMore ||
+      this.state.images !== nextState.images ||
+      this.props.onEndReachedThreshold !== nextProps.onEndReachedThreshold ||
+      this.props.maximum !== nextProps.maximum ||
+      this.props.selected !== nextProps.selected ||
+      this.props.assetType !== nextProps.assetType ||
+      this.props.maximum !== nextProps.maximum ||
+      this.props.columnCount !== nextProps.columnCount ||
+      this.props.fetchSize !== nextProps.fetchSize ||
+      this.state.initial !== nextState.initial ||
+      this.state.selected.size !== nextState.selected.size
+    )
 
-        this.state = {
-            images: [],
-            selected,
-            lastCursor: null,
-            loadingMore: false,
-            noMore: false,
-            dataSource: new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2}),
-        }
 
-        this._columnWidth = (rowWidth || deviceWidth) / columnCount
+    return shouldUpdate
+  }
+
+  componentDidMount () {
+    this._fetch()
+  }
+
+  async _fetch() {
+    let _this = this
+    let {groupTypes, assetType, fetchSize, getFirstPhoto} = _this.props
+    let {noMore, next, refreshing, initial} = _this.state
+
+    if (refreshing) {
+      return null
     }
 
-    componentDidMount () {
-        this._pullToRefreshListView.beginRefresh(true)
+    let fetchParams = {
+      limit: fetchSize,
+      type: assetType,
+      startFrom: next
     }
 
-    componentWillReceiveProps(nextProps) {
-        this.setState({
-            selected: nextProps.selected,
-        })
+
+    try {
+      if (initial) {
+        let firstPhotoAssets = await GalleryManager.getAssets({ limit: 1, startFrom: 0, type: assetType })
+        getFirstPhoto(firstPhotoAssets.assets[0])
+      }
+
+      this.setState({
+        initial: false
+      }, async () => {
+        let photos = await GalleryManager.getAssets(fetchParams)
+        _this._appendImages(photos)
+      })
+    }
+    catch(e) {
+      console.log(e)
+    }
+    finally {
+      this.setState({ refreshing: false })
+    }
+  }
+
+  _appendImages(data) {
+    let { images } = this.state
+    let { assets, hasMore, next, totalAssets } = data
+    let newState = {}
+
+    if (!hasMore) {
+        newState.noMore = true
     }
 
-    async _fetch() {
-        let _this = this
-        let {groupTypes, assetType, fetchSize: first} = _this.props
-        let {lastCursor, noMore} = _this.state
-
-        let fetchParams = {
-            first,
-            groupTypes,
-            assetType,
-        }
-
-        if (Platform.OS === "android") {
-            // not supported in android
-            delete fetchParams.groupTypes
-        }
-
-        if (lastCursor) {
-            fetchParams.after = lastCursor
-        }
-
-        try {
-            let photos = await CameraRoll.getPhotos(fetchParams)
-            _this._appendImages(photos)
-        }
-        catch(e) {
-            console.log(e)
-        }
-        finally {
-            if(!lastCursor) {
-                _this._pullToRefreshListView.endRefresh(true)
-            }
-            else {
-                _this._pullToRefreshListView.endLoadMore(noMore)
-            }
-        }
+    if (assets.length > 0) {
+        newState.lastCursor = totalAssets
+        newState.next = next
+        newState.images = images.concat(assets)
+        newState.refreshing = false
     }
 
-    _appendImages(data) {
-        let {columnCount} = this.props
-        let {images, dataSource} = this.state
-        let {edges: assets, page_info} = data
-        let {has_next_page, end_cursor} = page_info
-        let newState = {}
+    this.setState(newState)
+  }
 
-        if (!has_next_page) {
-            newState.noMore = true
-        }
+  render() {
+    let {
+        initialListSize,
+        pageSize,
+        onEndReachedThreshold,
+        columnCount
+    } = this.props
+    let { images, refreshing } = this.state
 
-        if (assets.length > 0) {
-            newState.lastCursor = end_cursor
-            newState.images = images.concat(assets)
-            newState.dataSource = dataSource.cloneWithRows(
-                this._generateRow(newState.images, columnCount)
-            )
-        }
+    return (
+      <FlatList
+        data={images}
+        renderItem={this._renderImage}
+        numColumns={columnCount}
+        keyExtractor={(item, index)=> `${item.uri}__${index}`}
+        style={styles.container}
+        onEndReachedThreshold={onEndReachedThreshold}
+        onEndReached={this._fetch}
+        refreshing={refreshing}
+        ListFooterComponent={this._renderFooter}
+        extraData={this.state.selected.size}
+      />
+    )
+  }
 
-        this.setState(newState)
+  _renderImage({ item, index }) {
+    let {
+        selectedMarker,
+    } = this.props
+
+    let uri = item.uri
+
+    let isSelected = this.state.selected.has(uri)
+
+    return (
+        <ImageView
+            key={`${uri}___${index}`}
+            item={item}
+            selected={isSelected}
+            selectedMarker={selectedMarker}
+            columnWidth={this._columnWidth}
+            onPress={this._selectImage.bind(this)}
+        />
+    )
+  }
+
+  _selectImage(image) {
+    let {maximum, onSelect, onMaximumReached} = this.props
+    const { selected } = this.state
+
+    if (selected.has(image.uri)) {
+      selected.delete(image.uri)
+    } else {
+      if (selected.size < maximum) {
+        selected.add(image.uri)
+      } else {
+        onMaximumReached()
+      }
     }
 
-    render() {
-        let {dataSource} = this.state
-        let {
-            initialListSize,
-            pageSize,
-            onEndReachedThreshold,
-        } = this.props
+    onSelect(Array.from(selected), image)
 
-        return (
-            <PullToRefreshListView
-                ref={ (component) => this._pullToRefreshListView = component }
-                viewType={PullToRefreshListView.constants.viewType.listView}
-                contentContainerStyle={{backgroundColor: 'transparent', }}
-                initialListSize={initialListSize}
-                enableEmptySections={true}
-                dataSource={dataSource}
-                pageSize={pageSize}
-                renderRow={this._renderRow}
-                listItemProps={{ style: {overflow: 'hidden', height: this._columnWidth,}, }}
-                enabledPullDown={false}
-                renderFooter={this._renderFooter}
-                onRefresh={this._onRefresh}
-                onLoadMore={this._onLoadMore}
-                autoLoadMore={true}
-                onEndReachedThreshold={onEndReachedThreshold}/>
-        )
+    this.forceUpdate()
+  }
+
+  _renderFooter = () => {
+    let {noMore} = this.state
+
+    if (!noMore) {
+      return (
+        <View style={{height: 30, justifyContent: 'center', alignItems: 'center'}}>
+          <ActivityIndicator
+            animating={true}
+            color={'#aaa'}
+            size={'small'}/>
+        </View>
+      )
     }
 
-    _renderImage(item, index) {
-        let {selected} = this.state
-        let {
-            selectedMarker,
-        } = this.props
-
-        let uri = item.node.image.uri
-        let isSelected = (this._arrayObjectIndexOf(selected, 'uri', uri) >= 0) ? true : false
-
-        return (
-            <ImageView
-                key={uri}
-                item={item}
-                selected={isSelected}
-                selectedMarker={selectedMarker}
-                columnWidth={this._columnWidth}
-                onClick={this._selectImage.bind(this)}
-            />
-        )
-    }
-
-    _renderRow = (rowData, sectionID, rowID) => {
-        let items = rowData.map((item, index) => {
-            if (item === null) {
-                return null
-            }
-            return (
-                this._renderImage(item, index)
-            )
-        })
-
-        return (
-            <View style={styles.row}>
-                {items}
-            </View>
-        )
-    }
-
-    _selectImage(image) {
-        let {maximum, columnCount, onSelect} = this.props
-
-        let selected = this.state.selected,
-            index = this._arrayObjectIndexOf(selected, 'uri', image.uri)
-
-        if (index >= 0) {
-            selected.splice(index, 1)
-        } else {
-            if (selected.length < maximum) {
-                selected.push(image)
-            }
-        }
-
-        this.setState({
-            selected: selected,
-            dataSource: this.state.dataSource.cloneWithRows(
-                this._generateRow(this.state.images, columnCount)
-            ),
-        })
-
-        onSelect(this.state.selected, image)
-    }
-
-    _generateRow(data, n) {
-        let result = [],
-            temp = []
-
-        for (let i = 0; i < data.length; ++i) {
-            if (i > 0 && i % n === 0) {
-                result.push(temp)
-                temp = []
-            }
-            temp.push(data[i])
-        }
-
-        if (temp.length > 0) {
-            while (temp.length !== n) {
-                temp.push(null)
-            }
-            result.push(temp)
-        }
-
-        return result
-    }
-
-    _arrayObjectIndexOf(array, property, value) {
-        return array.map((o) => { return o[property] }).indexOf(value)
-    }
-
-    _renderFooter = (viewState) => {
-        let {pullState, } = viewState
-        let {load_more_none, loading_more, loaded_all, } = PullToRefreshListView.constants.viewState
-       switch(pullState) {
-            case load_more_none:
-            case loading_more:
-                return (
-                    <View style={{height: 30, justifyContent: 'center', alignItems: 'center'}}>
-                        <ActivityIndicator
-                            animating={true}
-                            color={'#aaa'}
-                            size={'small'}/>
-                    </View>
-                )
-            case loaded_all:
-                return null
-        }
-    }
-
-    _onRefresh = () => {
-        this._fetch()
-    }
-
-    _onLoadMore = () => {
-        this._fetch()
-    }
+    return null
+  }
 }
 
 const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      marginVertical: 20
+    },
     wrapper:{
         flex: 1,
     },
@@ -282,4 +238,3 @@ const styles = StyleSheet.create({
         backgroundColor: 'transparent',
     },
 })
-
