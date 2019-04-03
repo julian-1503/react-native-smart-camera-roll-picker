@@ -73,7 +73,6 @@ export default class CameraRollPicker extends Component {
       this.state.selected.size !== nextState.selected.size
     )
 
-
     return shouldUpdate
   }
 
