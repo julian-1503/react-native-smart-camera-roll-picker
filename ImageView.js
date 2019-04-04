@@ -1,10 +1,12 @@
 import React, {Component} from 'react'
 import {
-    Image,
-    ImageBackground,
-    StyleSheet,
-    Dimensions,
-    TouchableWithoutFeedback,
+  Image,
+  ImageBackground,
+  StyleSheet,
+  Dimensions,
+  TouchableWithoutFeedback,
+  View,
+  Text
 } from 'react-native'
 
 export default class ImageItem extends Component {
@@ -15,12 +17,26 @@ export default class ImageItem extends Component {
     }
 
     render() {
-        let {item, selected, selectedMarker, columnWidth } = this.props
+        let {item, selected, selectedMarker, columnWidth, index } = this.props
         let marker = selectedMarker ? selectedMarker :
-            <Image
-                style={[styles.marker, {width: 25, height: 25}]}
-                source={require('./selected.png')}
-            />
+            <View
+                style={[styles.marker, {
+                  width: 18,
+                  height: 18,
+                  borderRadius: 18/2,
+                  borderColor: 'white',
+                  borderWidth: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }, selected ? { backgroundColor: '#75c5ef' } : {}]}
+            >
+            {
+              selected &&
+              <Text style={{ color: 'white' }}>
+                {index}
+              </Text>
+            }
+            </View>
 
         let image = {...item}
 
@@ -30,7 +46,7 @@ export default class ImageItem extends Component {
                 <ImageBackground
                     source={{uri: image.uri}}
                     style={{margin: 1, height: columnWidth - 2, width: columnWidth - 2,}} >
-                    { (selected) ? marker : null }
+                    { marker }
                 </ImageBackground>
             </TouchableWithoutFeedback>
         )
