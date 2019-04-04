@@ -100,14 +100,16 @@ export default class CameraRollPicker extends Component {
       if (initial) {
         let firstPhotoAssets = await GalleryManager.getAssets({ limit: 1, startFrom: 0, type: assetType })
         getFirstPhoto(firstPhotoAssets.assets[0])
+
+        this.setState({
+          initial: false
+        })
       }
 
-      this.setState({
-        initial: false
-      }, async () => {
+      if (!this.state.noMore) {
         let photos = await GalleryManager.getAssets(fetchParams)
         _this._appendImages(photos)
-      })
+      }
     }
     catch(e) {
       console.log(e)
@@ -170,6 +172,8 @@ export default class CameraRollPicker extends Component {
 
     let isSelected = this.state.selected.has(uri)
 
+    let selectedArray = Array.from(this.state.selected.values())
+
     return (
         <ImageView
             key={`${uri}___${index}`}
@@ -178,6 +182,7 @@ export default class CameraRollPicker extends Component {
             selectedMarker={selectedMarker}
             columnWidth={this._columnWidth}
             onPress={this._selectImage.bind(this)}
+            index={selectedArray.indexOf(uri) + 1}
         />
     )
   }
