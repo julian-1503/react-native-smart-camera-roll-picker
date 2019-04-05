@@ -38,6 +38,27 @@ export default class ImageItem extends Component {
             }
             </View>
 
+
+        let isVideo = item.type === 'video'
+        let intDuration = parseInt(item.duration)
+
+        let [minutes = '0', seconds = '0'] = intDuration < 60
+          ? ['0', intDuration]
+          : `${intDuration / 60}`.split('.')
+
+        let displaySeconds = `0${seconds}`.slice(-2)
+        let displayTime = `${minutes}:${displaySeconds}`
+
+      let durationComponent = isVideo
+        ? (
+            <View style={{ position: 'absolute', bottom: 5, right: 5 }}>
+              <Text style={{ color: 'white' }}>
+                {displayTime}
+              </Text>
+            </View>
+          )
+        : null
+
         let image = {...item}
 
         return (
@@ -47,6 +68,7 @@ export default class ImageItem extends Component {
                     source={{uri: image.uri}}
                     style={{margin: 1, height: columnWidth - 2, width: columnWidth - 2,}} >
                     { marker }
+                    { durationComponent }
                 </ImageBackground>
             </TouchableWithoutFeedback>
         )
