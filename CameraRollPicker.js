@@ -74,10 +74,19 @@ export default class CameraRollPicker extends Component {
       this.props.fetchSize !== nextProps.fetchSize ||
       this.state.initial !== nextState.initial ||
       this.state.selected.size !== nextState.selected.size ||
-      this.props.canSelect !== nextProps.canSelect
+      this.props.canSelect !== nextProps.canSelect ||
+      this.props.albumName !== nextProps.albumName
     )
 
     return shouldUpdate
+  }
+
+  componentDidUpdate (prevProps) {
+    if (this.props.albumName !== prevProps.albumName) {
+      this.setState({ images: [], initial: true }, () => {
+        this._fetch()
+      })
+    }
   }
 
   componentDidMount () {
