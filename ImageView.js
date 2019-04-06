@@ -14,29 +14,35 @@ export default class ImageItem extends Component {
     static defaultProps = {
         item: {},
         selected: false,
+        canSelec: false
     }
 
     render() {
-        let {item, selected, selectedMarker, columnWidth, index } = this.props
-        let marker = selectedMarker ? selectedMarker :
-            <View
-                style={[styles.marker, {
-                  width: 18,
-                  height: 18,
-                  borderRadius: 18/2,
-                  borderColor: 'white',
-                  borderWidth: 1,
-                  justifyContent: 'center',
-                  alignItems: 'center'
-                }, selected ? { backgroundColor: '#75c5ef' } : {}]}
-            >
-            {
-              selected &&
-              <Text style={{ color: 'white' }}>
-                {index}
-              </Text>
-            }
-            </View>
+        let {item, selected, selectedMarker, columnWidth, index, canSelect} = this.props
+
+        let marker = null
+
+        if (canSelect) {
+          marker = selectedMarker ? selectedMarker :
+              <View
+                  style={[styles.marker, {
+                    width: 18,
+                    height: 18,
+                    borderRadius: 18/2,
+                    borderColor: 'white',
+                    borderWidth: 1,
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                  }, selected ? { backgroundColor: '#75c5ef' } : {}]}
+              >
+              {
+                selected &&
+                <Text style={{ color: 'white' }}>
+                  {index}
+                </Text>
+              }
+              </View>
+        }
 
 
         let isVideo = item.type === 'video'
@@ -86,4 +92,4 @@ const styles = StyleSheet.create({
         right: 5,
         backgroundColor: 'transparent',
     },
-})
+}
