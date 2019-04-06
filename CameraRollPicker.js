@@ -22,6 +22,8 @@ import GalleryManager from 'react-native-gallery-manager'
 
 const {width: deviceWidth} = Dimensions.get('window')
 
+const formatKey =  (uri, index) => `${uri}__${index}`
+
 export default class CameraRollPicker extends Component {
 
   static defaultProps = {
@@ -31,6 +33,7 @@ export default class CameraRollPicker extends Component {
     columnCount: 3,
     assetType: 'all',
     selected: [],
+    canSelect: false,
     onSelect: (selectedImages, currentImage) => {},
     getFirstPhoto: () => {},
     onMaximumReached: () => {}
@@ -70,7 +73,8 @@ export default class CameraRollPicker extends Component {
       this.props.columnCount !== nextProps.columnCount ||
       this.props.fetchSize !== nextProps.fetchSize ||
       this.state.initial !== nextState.initial ||
-      this.state.selected.size !== nextState.selected.size
+      this.state.selected.size !== nextState.selected.size ||
+      this.props.canSelect !== nextProps.canSelect
     )
 
     return shouldUpdate
@@ -82,8 +86,8 @@ export default class CameraRollPicker extends Component {
 
   async _fetch() {
     let _this = this
-    let {groupTypes, assetType, fetchSize, getFirstPhoto} = _this.props
-    let {noMore, next, refreshing, initial} = _this.state
+    let {groupTypes, assetType, fetchSize, getFirstPhoto, albumName} = _this.props
+    let {noMore, next, refreshing, initial, selected} = _this.state
 
     if (refreshing) {
       return null
@@ -92,7 +96,8 @@ export default class CameraRollPicker extends Component {
     let fetchParams = {
       limit: fetchSize,
       type: assetType,
-      startFrom: next
+      startFrom: next,
+      albumName
     }
 
 
@@ -100,6 +105,7 @@ export default class CameraRollPicker extends Component {
       if (initial) {
         let firstPhotoAssets = await GalleryManager.getAssets({ limit: 1, startFrom: 0, type: assetType })
         getFirstPhoto(firstPhotoAssets.assets[0])
+        selected.add(firstPhotoAssets.assets[0].uri)
 
         this.setState({
           initial: false
@@ -140,10 +146,11 @@ export default class CameraRollPicker extends Component {
 
   render() {
     let {
-        initialListSize,
-        pageSize,
-        onEndReachedThreshold,
-        columnCount
+      initialListSize,
+      pageSize,
+      onEndReachedThreshold,
+      columnCount,
+      canSelect
     } = this.props
     let { images, refreshing } = this.state
 
@@ -152,13 +159,13 @@ export default class CameraRollPicker extends Component {
         data={images}
         renderItem={this._renderImage}
         numColumns={columnCount}
-        keyExtractor={(item, index)=> `${item.uri}__${index}`}
+        keyExtractor={(item, index)=> formatKey(item.uri, index)}
         style={styles.container}
         onEndReachedThreshold={onEndReachedThreshold}
         onEndReached={this._fetch}
         refreshing={refreshing}
         ListFooterComponent={this._renderFooter}
-        extraData={this.state.selected.size}
+        extraData={{ size: this.state.selected.size, canSelect: canSelect }}
       />
     )
   }
@@ -166,6 +173,7 @@ export default class CameraRollPicker extends Component {
   _renderImage({ item, index }) {
     let {
         selectedMarker,
+        canSelect
     } = this.props
 
     let uri = item.uri
@@ -176,28 +184,31 @@ export default class CameraRollPicker extends Component {
 
     return (
         <ImageView
-            key={`${uri}___${index}`}
+            key={formatKey(uri, index)}
             item={item}
             selected={isSelected}
             selectedMarker={selectedMarker}
             columnWidth={this._columnWidth}
             onPress={this._selectImage.bind(this)}
             index={selectedArray.indexOf(uri) + 1}
+            canSelect={canSelect}
         />
     )
   }
 
   _selectImage(image) {
-    let {maximum, onSelect, onMaximumReached} = this.props
+    let {maximum, onSelect, onMaximumReached, canSelect} = this.props
     const { selected } = this.state
 
-    if (selected.has(image.uri)) {
-      selected.delete(image.uri)
-    } else {
-      if (selected.size < maximum) {
-        selected.add(image.uri)
+    if (canSelect) {
+      if (selected.has(image.uri)) {
+        selected.delete(image.uri)
       } else {
-        onMaximumReached()
+        if (selected.size < maximum) {
+          selected.add(image.uri)
+        } else {
+          onMaximumReached()
+        }
       }
     }
 
